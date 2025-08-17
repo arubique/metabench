@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Read Raw Data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "read_raw_data.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Read RDS with R",
             "type": "debugpy",
             "request": "launch",
