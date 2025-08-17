@@ -1,7 +1,7 @@
 # item pre-selection (before IRT analysis)
 # 1. remove outlier subjects
 # 2. do item analysis
-# 3. perform hard exclusion 
+# 3. perform hard exclusion
 # 4. if needed, perform soft exclusion based on rejection sampling
 # usage: Rscript preprocess.R {benchmark}
 
@@ -116,7 +116,7 @@ if (BM != "mmlu"){
   df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
   data <- df2data(df)
   rm(df)
-  items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F) 
+  items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F)
 } else {
   mmlu <- collect.mmlu()
   data <- mmlu$data
@@ -124,7 +124,7 @@ if (BM != "mmlu"){
   rm(mmlu)
 }
 
-# find all duplicates 
+# find all duplicates
 dups <- which(duplicated(items$prompt)) # indices of non-unique items (only the second occurrance)
 if (length(dups) > 0){
    gprint("⚠️  Found {length(dups)} duplicate items, removing all but the first...")
@@ -165,7 +165,7 @@ items$exclude[items$sd <= 0.01] <- T
 gprint("{sum(items$exclude)} items have too little variance.")
 d.tmp <- sum(items$exclude)
 
-# 1. items should not be too easy 
+# 1. items should not be too easy
 guess_coeff <- 3/4
 upper_bound <- 0.95 * guess_coeff
 items$exclude[items$diff > upper_bound] <- T
@@ -182,7 +182,7 @@ n_excluded <- sum(items$exclude)
 p_excluded <- round(100 * n_excluded / nrow(items), 2)
 n_remaining <- nrow(items) - n_excluded
 gprint("Excluding {p_excluded}% items, {n_remaining} remain...")
-isr <- n_remaining / nrow(data) 
+isr <- n_remaining / nrow(data)
 if (isr <= 1/4){
   gprint("✅ Item to subject ratio is {round(isr, 2)}")
 } else {
@@ -212,7 +212,7 @@ gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
 out <- list(items = items.sub,
             data = data.sub,
             scores.orig = scores,
-            max.points.orig = max.points.orig 
+            max.points.orig = max.points.orig
 )
 outpath <- gpath("data/{BM}-preproc.rds")
 saveRDS(out, outpath)
