@@ -39,8 +39,8 @@ class BenchmarkLoader:
             'truthfulqa': 'mc1',}
         self.snapshots = {}
         self.df = pd.read_csv('open-llm-leaderboard.csv')
-    
-    
+
+
     def _parseBenchName(self, name: str) -> str:
         # prefix
         prefix = 'harness_'
@@ -64,8 +64,8 @@ class BenchmarkLoader:
             return f'open-llm-leaderboard/details_{name}'
         user, model = name.split('/')
         return f'open-llm-leaderboard/details_{user}__{model}'
-    
-    
+
+
     def _queryFileName(self, source: str, benchmark: str) -> str:
         # we only want the latest parquet files for the benchmark
         dataset_name = self._parseSourceName(source)
@@ -78,15 +78,15 @@ class BenchmarkLoader:
         configs = info.cardData.configs
         config_names = [c['config_name'] for c in configs]
         assert config_name in config_names, \
-            f'🔎 Config {config_name} not found for {source}. Available configs: {config_names}' 
+            f'🔎 Config {config_name} not found for {source}. Available configs: {config_names}'
         config = configs[config_names.index(config_name)]
         splits = [c['split'] for c in config['data_files']]
         split = config['data_files'][splits.index('latest')]
         if len(split['path']) != 1:
             print(f'🚨 Warning: Found {len(split["path"])} files, expected 1.')
         return split['path'][0]
-        
-    
+
+
     def _fallbackSibling(self, info: DatasetInfo, benchmark: str) -> str:
         assert hasattr(info, 'siblings'), f'🚨 No siblings found for {info.id}.'
         fnames = [s.rfilename for s in info.siblings if benchmark in s.rfilename]
@@ -95,8 +95,8 @@ class BenchmarkLoader:
             print(f'🔎 {len(fnames)} fitting siblings found for {benchmark}.')
         print(f'🎉 Fallback sibling found for {info.id}')
         return fnames[0]
-    
-    
+
+
     def _downloadSnapshot(self, source: str, filename: str) -> str:
         # if it's already downloaded, we just quickly get the path
         dataset_name = self._parseSourceName(source)
@@ -110,8 +110,8 @@ class BenchmarkLoader:
         except Exception as e:
             print(f'Error: {e}')
             return ''
-    
-    
+
+
     def _pathToParquet(self, snapshotdir: str, filename: str) -> str:
         fname = filename.split('/')[-1]
         real_root = ''
@@ -121,8 +121,8 @@ class BenchmarkLoader:
                 break
         assert real_root, f'🔎 Parquet files not found in {snapshotdir}.'
         return os.path.join(real_root, fname)
-    
-    
+
+
     def _dumpDataset(self, df: pd.DataFrame, benchmark: str) -> None:
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
         path = os.path.join(self.output_dir, f'{prefix}{benchmark}.csv')
@@ -130,14 +130,14 @@ class BenchmarkLoader:
             df.to_csv(path, index=False)
         else:
             df.to_csv(path, mode='a', index=False, header=False)
-    
-    
+
+
     def _dumpText(self, source: str, benchmark: str, suffix: str):
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
         path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_{suffix}.txt')
         with open(path, 'a') as f:
             f.write(source + '\n')
-   
+
 
     def _processPrompts(self, path: str, benchmark: str) -> None:
         try:
@@ -157,7 +157,7 @@ class BenchmarkLoader:
         prompts.to_csv(prompt_path, index=False)
         if self.verbose > 0:
             print(f'📜 Dumped {benchmark} prompts to csv.')
- 
+
 
     def _processParquet(self, path: str, source: str, benchmark: str) -> pd.DataFrame:
         try:
@@ -166,7 +166,7 @@ class BenchmarkLoader:
             print('🚨 Using pyarrow engine instead of fastparquet.')
             raw = pd.read_parquet(path, engine='pyarrow')
         n = len(raw)
-        
+
         # extract metric
         metric = self.metrics[benchmark] if benchmark in self.metrics else 'acc'
         if metric in raw.columns:
@@ -181,7 +181,7 @@ class BenchmarkLoader:
                            'item': range(1, n+1),
                            'correct': responses})
         return df
-    
+
 
     def downloadDataset(self, source: str, benchmark: str) -> None:
         if source in self.snapshots:
@@ -202,8 +202,8 @@ class BenchmarkLoader:
         except Exception as e:
             self._dumpText(source, benchmark, 'failed')
             print(f'❌ Failed to download {source} snapshot. {e}')
-    
-    
+
+
     def processDataset(self, source: str, benchmark: str) -> None:
         try:
             assert source in self.snapshots, f'❌ No snapshot found for {source}.'
@@ -216,8 +216,8 @@ class BenchmarkLoader:
         except Exception as e:
             self._dumpText(source, benchmark, 'failed')
             print(f'❌ Failed to process {source} snapshot. {e}')
-    
-    
+
+
     def _getBlacklist(self, benchmark: str) -> Tuple[List[str], List[str]]:
         finished, failed = [], []
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
@@ -231,19 +231,19 @@ class BenchmarkLoader:
                 failed = f.read().splitlines()
         return finished, failed
 
-    
+
     def _removeRedundant(self, benchmark: str, sources: list = [], verbose: int = 1) -> List[str]:
         if len(sources) == 0:
             sources = self.df['name'].values.tolist()
-        
+
         finished, failed = self._getBlacklist(benchmark)
         blacklist = set(finished + failed)
         if verbose > 0 and len(blacklist) > 0:
             print(f'Skipping {len(finished)} finished and {len(failed)} failed sources...')
         whitelist = [s for s in sources if s not in blacklist]
         return whitelist
-    
-    
+
+
     def _getSnapshotDirs(self, benchmark: str) -> None:
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
         path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_snapshots.txt')
@@ -256,22 +256,22 @@ class BenchmarkLoader:
             key, value = line.split('@')
             self.snapshots[key] = value
 
-    
+
     def getBenchmark(self, benchmark: str, download: bool = False, prompts: bool = False) -> None:
         mode = 'downloading' if download else 'processing'
         print(f'🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
             return self._getMMLU(download)
         assert benchmark in self.benchmarks + self.mmlu, f'❌ Benchmark {benchmark} not found.'
-            
+
         # preselect sources
         if benchmark in self.benchmarks:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
         self._getSnapshotDirs(benchmark)
-        
-        # download 
+
+        # download
         if download:
             sources = self._removeRedundant(benchmark)
             with mp.Pool(self.num_cores) as pool:
@@ -295,7 +295,7 @@ class BenchmarkLoader:
             path = self.snapshots[sources[0]]
             self._processPrompts(path, benchmark)
             return
-        
+
         # process
         sources = self._removeRedundant(benchmark)
         if self.num_cores == 1:
@@ -310,13 +310,13 @@ class BenchmarkLoader:
         if self.verbose > 0:
             print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.')
         # self.postProcess(benchmark)
-         
-    
+
+
     def _getMMLU(self, separate: bool = False) -> None:
         for m in self.mmlu:
             self.getBenchmark(m, separate)
-    
-    
+
+
     def _sortkey(self, x):
         try:
             return x.str.lower()
@@ -336,16 +336,22 @@ class BenchmarkLoader:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--datadir', type=str, default='/home/alex/Datasets/open-llm-leaderboard/')
-    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/metabench/data/')
+    parser.add_argument('-d', '--datadir', type=str, default='./hf_files_for_benchmark_loader/')
+    parser.add_argument('-o', '--outputdir', type=str, default='./data_for_benchmark_loader/')
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--download', action='store_true', default=False)
     parser.add_argument('--prompts', action='store_true', default=False)
     parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
     args = parser.parse_args()
-    bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
+    bl = BenchmarkLoader(
+        # cache_dir=args.cachedir,
+        cache_dir=args.datadir,
+        output_dir=args.outputdir,
+        verbose=args.verbose,
+        num_cores=args.num_cores
+    )
     bl.getBenchmark(args.benchmark, args.download, args.prompts)
-    
+
 if __name__ == '__main__':
     main()

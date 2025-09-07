@@ -23,6 +23,9 @@ scraping/open-llm-leaderboard_log*
 
 
 envs
+items
+figures
+*.pdf
 hf_files
 *.out
 *__pycache__*
