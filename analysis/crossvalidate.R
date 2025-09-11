@@ -10,7 +10,21 @@ parse.args(
    names = c("BM", "MOD", "D", "seed"),
    defaults = c("arc", "2PL", 1, 1),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+    BM = c(
+        "arc",
+        "arc_disco_iid",
+        "arc_disco_noniid",
+        "gsm8k",
+        "hellaswag",
+        "hellaswag_disco_iid",
+        "hellaswag_disco_noniid",
+        "mmlu",
+        "mmlu_disco_iid",
+        "mmlu_disco_noniid",
+        "winogrande",
+        "winogrande_disco_iid",
+        "winogrande_disco_noniid"
+    ),
      MOD = c("2PL", "3PL", "4PL"),
      D = c(1, 2)
    )
@@ -23,7 +37,7 @@ set.seed(seed)
 skip.reduced <- F # load v2
 
 # =============================================================================
-# helper functions  
+# helper functions
 
 quick.eval <- function(df.test){
   df.test |>
@@ -53,7 +67,7 @@ cross.validate <- function(){
   mod.score <- fit.gam(df.train)
   df.train$p <- predict(mod.score)
   gprint("RMSE train: {round(quick.eval(df.train)$rmse, 3)}")
-  
+
   # test performance
   theta.test <- get.theta(model, method = "MAP", resp = data.test)
   # remove any columns that start with "SE_"

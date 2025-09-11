@@ -8,7 +8,21 @@ parse.args(
    names = c("BM", "N", "seed", "sequential"),
    defaults = c("arc", 350, 1, "FALSE"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+     BM = c(
+        "arc",
+        "arc_disco_iid",
+        "arc_disco_noniid",
+        "gsm8k",
+        "hellaswag",
+        "hellaswag_disco_iid",
+        "hellaswag_disco_noniid",
+        "mmlu",
+        "mmlu_disco_iid",
+        "mmlu_disco_noniid",
+        "winogrande",
+        "winogrande_disco_iid",
+        "winogrande_disco_noniid"
+    ),
      N = seq(0, 817, 1),
      sequential = c("TRUE", "FALSE")
    )
