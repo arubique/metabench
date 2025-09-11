@@ -165,7 +165,7 @@ def save_arc_sample_data(data, seed, output_dir="data"):
     Path(output_dir).mkdir(exist_ok=True)
 
     # Save as pickle file (Python equivalent of RDS)
-    filename = f"arc-preproc-split-seed={seed}.pkl"
+    filename = f"{benchmark}-preproc-split-seed={seed}.pkl"
     filepath = os.path.join(output_dir, filename)
 
     with open(filepath, 'wb') as f:
@@ -178,11 +178,11 @@ def save_arc_sample_data(data, seed, output_dir="data"):
     Path(csv_dir).mkdir(exist_ok=True)
 
     # Save data matrices (with index to preserve row names)
-    data['data.train'].to_csv(os.path.join(csv_dir, f"arc-train-seed={seed}.csv"), index=True)
-    data['data.test'].to_csv(os.path.join(csv_dir, f"arc-test-seed={seed}.csv"), index=True)
+    data['data.train'].to_csv(os.path.join(csv_dir, f"{benchmark}-train-seed={seed}.csv"), index=True)
+    data['data.test'].to_csv(os.path.join(csv_dir, f"{benchmark}-test-seed={seed}.csv"), index=True)
 
     # Save items metadata
-    data['items'].to_csv(os.path.join(csv_dir, f"arc-items-seed={seed}.csv"), index=False)
+    data['items'].to_csv(os.path.join(csv_dir, f"{benchmark}-items-seed={seed}.csv"), index=False)
 
     # Save scores
     scores_df = pd.DataFrame({
@@ -190,11 +190,11 @@ def save_arc_sample_data(data, seed, output_dir="data"):
         'score': list(data['scores.train']) + list(data['scores.test']),
         'set': ['train'] * len(data['scores.train']) + ['test'] * len(data['scores.test'])
     })
-    scores_df.to_csv(os.path.join(csv_dir, f"arc-scores-seed={seed}.csv"), index=False)
+    scores_df.to_csv(os.path.join(csv_dir, f"{benchmark}-scores-seed={seed}.csv"), index=False)
 
     # Save max points
     max_points_df = pd.DataFrame({'max_points': [data['max.points.orig']]})
-    max_points_df.to_csv(os.path.join(csv_dir, f"arc-max_points-seed={seed}.csv"), index=False)
+    max_points_df.to_csv(os.path.join(csv_dir, f"{benchmark}-max_points-seed={seed}.csv"), index=False)
 
     print(f"💾 Also saved CSV files to {csv_dir}/")
 
@@ -202,7 +202,7 @@ def print_data_summary(data, seed):
     """
     Print summary statistics of the generated data
     """
-    print(f"\n📊 Sample Data Summary for ARC (seed={seed}):")
+    print(f"\n📊 Sample Data Summary for {benchmark} (seed={seed}):")
     print(f"   Models (train): {len(data['data.train'])}")
     print(f"   Models (test): {len(data['data.test'])}")
     print(f"   Items: {len(data['items'])}")
