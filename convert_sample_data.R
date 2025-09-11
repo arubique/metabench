@@ -59,7 +59,7 @@ convert_python_data <- function(benchmark, seed) {
 # =============================================================================
 # Alternative function using CSV files (if reticulate is not available)
 convert_csv_data <- function(benchmark, seed) {
-  csv_dir <- glue::glue("data/csv")
+  csv_dir <- glue::glue("data/csv/{benchmark}-preproc-split-seed={seed}")
 
   # Load data matrices (with row names)
   # Read the CSV file and handle the row names properly
@@ -84,20 +84,25 @@ convert_csv_data <- function(benchmark, seed) {
   rownames(data_train) <- train_row_names
   rownames(data_test) <- test_row_names
 
-  # Load items metadata (keep as tibble to match original)
-  items <- read_csv(glue::glue("{csv_dir}/{benchmark}-items-seed={seed}.csv"))
+  # Load items metadata if file exists
+  items_path <- glue::glue("{csv_dir}/{benchmark}-items-seed={seed}.csv")
+  if (file.exists(items_path)) {
+    items <- read_csv(items_path)
 
-  # Remove readr-specific attributes to match original structure
-  attr(items, "spec") <- NULL
-  attr(items, "problems") <- NULL
+    # Remove readr-specific attributes to match original structure
+    attr(items, "spec") <- NULL
+    attr(items, "problems") <- NULL
 
-  # Set class to match original (remove spec_tbl_df)
-  class(items) <- c("tbl_df", "tbl", "data.frame")
+    # Set class to match original (remove spec_tbl_df)
+    class(items) <- c("tbl_df", "tbl", "data.frame")
 
-  # Add names to sd, diff, disc columns to match original structure
-  items$sd <- setNames(items$sd, as.character(items$item))
-  items$diff <- setNames(items$diff, as.character(items$item))
-  items$disc <- setNames(items$disc, as.character(items$item))
+    # Add names to sd, diff, disc columns to match original structure
+    items$sd <- setNames(items$sd, as.character(items$item))
+    items$diff <- setNames(items$diff, as.character(items$item))
+    items$disc <- setNames(items$disc, as.character(items$item))
+  } else {
+    items <- NULL
+  }
 
   # Load scores
   scores_df <- read_csv(glue::glue("{csv_dir}/{benchmark}-scores-seed={seed}.csv"))
