@@ -13,17 +13,17 @@ parse.args(
     BM = c(
         "arc",
         "arc_disco_iid",
-        "arc_disco_noniid",
+        "arc_disco_ood",
         "gsm8k",
         "hellaswag",
         "hellaswag_disco_iid",
-        "hellaswag_disco_noniid",
+        "hellaswag_disco_ood",
         "mmlu",
         "mmlu_disco_iid",
-        "mmlu_disco_noniid",
+        "mmlu_disco_ood",
         "winogrande",
         "winogrande_disco_iid",
-        "winogrande_disco_noniid"
+        "winogrande_disco_ood"
     ),
      MOD = c("2PL", "3PL", "4PL"),
      D = c(1, 2)
