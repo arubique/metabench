@@ -7,8 +7,8 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, get.theta, run.mirt])
 
 parse.args(
-   names = c("BM", "MOD", "D", "seed"),
-   defaults = c("arc", "2PL", 1, 1),
+   names = c("BM", "MOD", "D", "seed", "num_anchors"),
+   defaults = c("arc", "2PL", 1, 1, 350),
    legal = list(
     BM = c(
         "arc",
@@ -86,7 +86,7 @@ cross.validate <- function(){
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
 suffix <- ifelse(skip.reduced, glue::glue("-v2"), "")
-datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
+datapath <- gpath("data/{BM}-sub-{num_anchors}-seed={seed}{suffix}.rds")
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
@@ -100,6 +100,6 @@ scores.test <- preproc$scores.test / nc * 100
 # cv models
 cv <- cross.validate()
 suffix <- ifelse(skip.reduced, "-v2", "")
-outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv-seed={seed}{suffix}.rds")
+outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv-num_anchors={num_anchors}-seed={seed}{suffix}.rds")
 saveRDS(cv, outpath)
 gprint("💾 Saved to '{outpath}'.")
