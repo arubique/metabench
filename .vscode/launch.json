@@ -42,7 +42,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
-        ,
+
         },
         {
             "name": "Leaderboard Loader",
@@ -56,6 +56,15 @@
                 "data"
             ],
             "console": "integratedTerminal"
-        }
+        },
+        {
+            "name": "R Debugger: Evaluate CV (arc_disco_ood)",
+            "type": "R-Debugger",
+            "request": "launch",
+            "file": "/home/oh/arubinstein17/github/metabench/analysis/evaluate.cv.R",
+            "workingDirectory": "/home/oh/arubinstein17/github/metabench/analysis",
+            "env": {},
+            "debugMode": "file"
+        },
     ]
 }

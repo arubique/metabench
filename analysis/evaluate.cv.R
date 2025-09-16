@@ -8,8 +8,8 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
-   names = c("BM", "METH", "DIM", "seed"),
-   defaults = c("arc", "EAPsum", 1, 1),
+   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW"),
+   defaults = c("arc", "EAPsum", 1, 1, 1),
    legal = list(
     BM = c(
         "arc",
@@ -37,15 +37,21 @@ skip.reduced <- F # load v2
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
+
 # helper functions
-cv.extract <- function(results, itemtype) {
+cv.extract <- function(results, itemtype, to_merge_row = T) {
    df <- results[[itemtype]]$df
    df$type <- itemtype
-   rowmerge(df, leaderboard)
+   if (to_merge_row) {
+     rowmerge(df, leaderboard)
+   }
+   else {
+     df
+   }
 }
 
-cv.collect <- function(results) {
-  dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype))
+cv.collect <- function(results, to_merge_row = T) {
+  dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype, to_merge_row = to_merge_row))
   names(dfs) <- names(results)
   dfs <- do.call(rbind, dfs)
   dfs$set <- factor(dfs$set, levels = c("train", "test"))
@@ -246,7 +252,7 @@ if (DIM == 1){
 if (METH == "EAPsum"){
   cvs <- refit.wrapper(cvs)
 }
-df.score <- cv.collect(cvs)
+df.score <- cv.collect(cvs, to_merge_row = TO_MERGE_ROW)
 
 # evaluate
 sfs <- evaluate.fit(df.score)
