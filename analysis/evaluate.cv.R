@@ -34,6 +34,8 @@ here::i_am("analysis/evaluate.cv.R")
 seed <- as.numeric(seed)
 set.seed(seed)
 skip.reduced <- F # load v2
+TO_MERGE_ROW <- as.logical(as.numeric(TO_MERGE_ROW))
+
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
