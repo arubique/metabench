@@ -8,7 +8,7 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
-   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW", "TO_MAKE_PLOTS"),
+   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW", "TO_MAKE_PLOTS", "NUM_ANCHORS"),
    defaults = c("arc", "EAPsum", 1, 1, 1, 1),
    legal = list(
     BM = c(
@@ -34,6 +34,7 @@ here::i_am("analysis/evaluate.cv.R")
 seed <- as.numeric(seed)
 set.seed(seed)
 skip.reduced <- F # load v2
+NUM_ANCHORS <- as.numeric(NUM_ANCHORS)
 TO_MERGE_ROW <- as.logical(as.numeric(TO_MERGE_ROW))
 TO_MAKE_PLOTS <- as.logical(as.numeric(TO_MAKE_PLOTS))
 suffix <- ifelse(skip.reduced, "-v2", "")
@@ -102,7 +103,7 @@ refit <- function(result, data.train, data.test){
 
 refit.wrapper <- function(cvs){
   gprint("Refitting theta using {METH}...")
-  datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
+  datapath <- gpath("data/{BM}-sub-{NUM_ANCHORS}-seed={seed}{suffix}.rds")
   all <- readRDS(datapath)
   data.train <- all$data.train
   data.test <- all$data.test
@@ -239,7 +240,7 @@ leaderboard <- leaderboard |> dplyr::select(size) |> dplyr::filter(size > 0)
 # =============================================================================
 # load cv results
 str.1 <- glue::glue("analysis/models/{BM}")
-str.2 <- glue::glue("{DIM}-cv-seed={seed}{suffix}.rds")
+str.2 <- glue::glue("{DIM}-cv-num_anchors={NUM_ANCHORS}-seed={seed}{suffix}.rds")
 if (DIM == 1){
   cvs <- list(
    "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}")),
