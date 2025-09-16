@@ -8,8 +8,8 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
-   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW"),
-   defaults = c("arc", "EAPsum", 1, 1, 1),
+   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW", "TO_MAKE_PLOTS"),
+   defaults = c("arc", "EAPsum", 1, 1, 1, 1),
    legal = list(
     BM = c(
         "arc",
@@ -35,7 +35,7 @@ seed <- as.numeric(seed)
 set.seed(seed)
 skip.reduced <- F # load v2
 TO_MERGE_ROW <- as.logical(as.numeric(TO_MERGE_ROW))
-
+TO_MAKE_PLOTS <- as.logical(as.numeric(TO_MAKE_PLOTS))
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
@@ -293,15 +293,17 @@ p <- cowplot::plot_grid(
   p.ps, p.ts, p.pc,  p.er, ncol = 1
 )
 
-# scatter plot for 2dim models
-if (DIM == 2){
-  p2d <- plot.theta2d(df.score, "2PL")
-  outpath <- gpath("plots/{BM}-{METH}-2d-theta-seed={seed}{suffix}.png")
-  ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
-}
+if (TO_MAKE_PLOTS){
+    # scatter plot for 2dim models
+    if (DIM == 2){
+        p2d <- plot.theta2d(df.score, "2PL")
+        outpath <- gpath("plots/{BM}-{METH}-2d-theta-seed={seed}{suffix}.png")
+        ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
+    }
 
-# save
-outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.png")
-ggplot2::ggsave(outpath, p, width = 16, height = 16)
-gprint("💾 Saved plot to {outpath}")
+    # save
+    outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.png")
+    ggplot2::ggsave(outpath, p, width = 16, height = 16)
+    gprint("💾 Saved plot to {outpath}")
+}
 
