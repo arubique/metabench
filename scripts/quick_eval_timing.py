@@ -130,6 +130,17 @@ def local_generate(tok: AutoTokenizer,
         return False, 0.0, str(e)
 
 
+def clean_memory(tok: AutoTokenizer, mdl: AutoModelForCausalLM):
+    try:
+        del tok
+        del mdl
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        print("Failed to clean memory")
+        pass
+
+
 def run_benchmark(models_csv: str,
                   prompts_csv: str,
                   num_models: int,
@@ -151,34 +162,31 @@ def run_benchmark(models_csv: str,
     durations: List[float] = []
     records = []
 
-    for model in models:
+    for model in tqdm(models, desc="Models"):
         if use_local:
             try:
                 tok, mdl = load_local_model(model, dtype=dtype, device_map=device_map, revision=revision)
                 current_device = "cuda" if any(p.is_cuda for p in mdl.parameters()) else "cpu"
+
+                for prompt in tqdm(prompts, desc="Prompts"):
+                    ok, elapsed, gen_text = local_generate(tok, mdl, prompt, max_new_tokens, device=current_device)
+                    durations.append(elapsed)
+                    records.append({
+                        "model": model,
+                        "elapsed_seconds": elapsed,
+                        "ok": ok,
+                        "gen_text": gen_text
+                    })
+                    if sleep_between > 0:
+                        time.sleep(sleep_between)
+                clean_memory(tok, mdl)
             except Exception as e:
+                clean_memory(tok, mdl)
                 records.append({"model": model, "elapsed_seconds": float("nan"), "ok": False, "error": f"load_failed: {e}"})
                 continue
-            for prompt in prompts:
-                ok, elapsed, gen_text = local_generate(tok, mdl, prompt, max_new_tokens, device=current_device)
-                durations.append(elapsed)
-                records.append({
-                    "model": model,
-                    "elapsed_seconds": elapsed,
-                    "ok": ok,
-                    "gen_text": gen_text
-                })
-                if sleep_between > 0:
-                    time.sleep(sleep_between)
-            try:
-                del tok
-                del mdl
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            except Exception:
-                pass
+
         else:
-            for prompt in prompts:
+            for prompt in tqdm(prompts, desc="Prompts"):
                 ok, elapsed, gen_text = hf_generate(model, prompt, token, timeout, max_new_tokens)
                 durations.append(elapsed)
                 records.append({
