@@ -5,6 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Quick Eval Timing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/quick_eval_timing.py",
+            "args": [
+                "--models_csv",
+                "scraping/open-llm-leaderboard.csv",
+                "--prompts_csv",
+                "data/mmlu_college_mathematics_prompts.csv",
+                "--num_models",
+                "10",
+                "--num_prompts",
+                "10",
+                "--hf_token_file",
+                "/home/oh/arubinstein17/WORK/hugging_face/disco_token",
+                "--use_local",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Benchmark Loader",
             "type": "debugpy",
             "request": "launch",
