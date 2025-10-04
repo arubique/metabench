@@ -113,13 +113,15 @@ class EvalResult:
             data = json.load(fp)
 
         # We manage the legacy config format
-        config = data.get("config_general")
+        # config = data.get("config_general")
+        config = data.get("config")
 
         # Precision
         precision = Precision.from_str(config.get("model_dtype"))
 
         # Get model and org
-        org_and_model = config.get("model_name")
+        # org_and_model = config.get("model_name")
+        org_and_model = data.get("model_name")
         org_and_model = org_and_model.split("/", 1)
 
         if len(org_and_model) == 1:

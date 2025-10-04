@@ -5,15 +5,31 @@
 box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
-   names = c("BM", "N", "seed"),
-   defaults = c("arc", 350, 1),
+   names = c("BM", "N", "seed", "sequential"),
+   defaults = c("arc", 350, 1, "FALSE"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     N = seq(0, 817, 1)
+     BM = c(
+        "arc",
+        "arc_disco_iid",
+        "arc_disco_ood",
+        "gsm8k",
+        "hellaswag",
+        "hellaswag_disco_iid",
+        "hellaswag_disco_ood",
+        "mmlu",
+        "mmlu_disco_iid",
+        "mmlu_disco_ood",
+        "winogrande",
+        "winogrande_disco_iid",
+        "winogrande_disco_ood"
+    ),
+     N = seq(0, 817, 1),
+     sequential = c("TRUE", "FALSE")
    )
 )
 N <- as.numeric(N)
 seed <- as.numeric(seed)
+sequential <- as.logical(sequential)
 set.seed(seed)
 skip.reduced <- F # remove items used in original run
 
@@ -41,19 +57,19 @@ subsample.wrapper <- function(seed.local, fold){
   # reproducible index sampling
   set.seed(seed.local)
   indices.rand <- subsample(data, N)
-  
+
   # 5-fold data split
   data.split <- split(fold)
   data.train <- data.split$data.train
   data.val <- data.split$data.val
   scores.train <- data.split$scores.train
   scores.val <- data.split$scores.val
-  
+
   # subsample same items from train and test data
   data.train.r <- data.train[,indices.rand]
   data.val.r <- data.val[,indices.rand]
   data.test.r <- data.test[,indices.rand]
-  
+
   # train gam model
   df.train <- data.frame(means = scores.train, reduced = rowMeans(data.train.r))
   df.val <- data.frame(means = scores.val, reduced = rowMeans(data.val.r))
@@ -65,11 +81,11 @@ subsample.wrapper <- function(seed.local, fold){
   # df.val <- data.frame(means = scores.val, data.val.r)
   # df.test <- data.frame(means = scores.test, data.test.r)
   # mod.score <- lm(means ~ 0 + ., data = df.train)
-  
+
   # predict on val/test set
   df.val <- predict.scores(df.val, mod.score)
   df.test <- predict.scores(df.test, mod.score)
-  
+
   # output
   list(indices.rand = indices.rand,
        seed = seed.local,
@@ -85,7 +101,7 @@ bind.results <- function(results){
   results.tmp <- lapply(results.tmp, function(x) x[-1])
   out <- as.data.frame(do.call(rbind, results.tmp))
   out <- as.data.frame(lapply(out, as.numeric))
-  out 
+  out
 }
 
 benchmarks <- list(
@@ -138,18 +154,48 @@ gprint("🔁 Running 10000 subsampling iterations with {N} items and 5 folds..."
 # =============================================================================
 # setup parallel processing
 box::use(doParallel[...], foreach[...])
-n.cores <- parallel::detectCores() - 1
-mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
-doParallel::registerDoParallel(mu.cluster)
+
+# Use very conservative core count to avoid socket issues
+if (sequential) {
+  gprint("🔄 Using sequential processing as requested...")
+  n.cores <- 1
+  mu.cluster <- NULL
+} else {
+  n.cores <- min(parallel::detectCores() - 1, 2)  # Limit to max 2 cores
+  gprint("🔧 Using {n.cores} cores for parallel processing...")
+
+  # Add error handling for cluster creation
+  mu.cluster <- NULL
+  tryCatch({
+    mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
+    doParallel::registerDoParallel(mu.cluster)
+    gprint("✅ Parallel cluster created successfully")
+  }, error = function(e) {
+    gprint("⚠️  Failed to create cluster: {e$message}")
+    gprint("🔄 Falling back to sequential processing...")
+    n.cores <- 1
+    mu.cluster <- NULL
+  })
+}
+
 df.index <- expand.grid(seed = 1:1e4, fold = 1:5) |>
    dplyr::arrange(seed, fold)
 niter <- nrow(df.index)
 
 # setup progress bar
-doSNOW::registerDoSNOW(mu.cluster)
-pb <- utils::txtProgressBar(max = niter, style = 3)
-progress <- function(n) utils::setTxtProgressBar(pb, n)
-opts <- list(progress = progress)
+if (!is.null(mu.cluster)) {
+  tryCatch({
+    doSNOW::registerDoSNOW(mu.cluster)
+    pb <- utils::txtProgressBar(max = niter, style = 3)
+    progress <- function(n) utils::setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+  }, error = function(e) {
+    gprint("⚠️  Failed to setup progress bar, using basic output...")
+    opts <- list()
+  })
+} else {
+  opts <- list()
+}
 
 # =============================================================================
 # run subsampling
@@ -158,8 +204,10 @@ res.full <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
   fold <- df.index$fold[i]
   subsample.wrapper(seed.local, fold)
 }
-close(pb)
-parallel::stopCluster(mu.cluster)
+if (!is.null(mu.cluster)) {
+  close(pb)
+  parallel::stopCluster(mu.cluster)
+}
 
 # tidy up results
 res <- bind.results(res.full) |>

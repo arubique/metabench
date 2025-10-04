@@ -1,0 +1,90 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Quick Eval Timing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/quick_eval_timing.py",
+            "args": [
+                "--models_csv",
+                "scraping/open-llm-leaderboard.csv",
+                "--prompts_csv",
+                "data/mmlu_college_mathematics_prompts.csv",
+                "--num_models",
+                "10",
+                "--num_prompts",
+                "10",
+                "--hf_token_file",
+                "/home/oh/arubinstein17/WORK/hugging_face/disco_token",
+                "--use_local",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Benchmark Loader",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scraping/benchmark_loader.py",
+            "args": [
+                "--datadir",
+                "hf_files_for_benchmark_loader",
+                "--outputdir",
+                "data_for_benchmark_loader",
+                "--num_cores",
+                "4",
+                "--benchmark",
+                "arc",
+                "--download"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Read Raw Data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "read_raw_data.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Read RDS with R",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "read_rds_with_r.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+
+        },
+        {
+            "name": "Leaderboard Loader",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scraping/leaderboard_loader.py",
+            "args": [
+                "--datadir",
+                "hf_files",
+                "--outputdir",
+                "data"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "R Debugger: Evaluate CV (arc_disco_ood)",
+            "type": "R-Debugger",
+            "request": "launch",
+            "file": "/home/oh/arubinstein17/github/metabench/analysis/evaluate.cv.R",
+            "workingDirectory": "/home/oh/arubinstein17/github/metabench/analysis",
+            "env": {},
+            "debugMode": "file"
+        },
+    ]
+}

@@ -8,10 +8,24 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
-   names = c("BM", "METH", "DIM", "seed"),
-   defaults = c("arc", "EAPsum", 1, 1),
+   names = c("BM", "METH", "DIM", "seed", "TO_MERGE_ROW", "TO_MAKE_PLOTS", "NUM_ANCHORS"),
+   defaults = c("arc", "EAPsum", 1, 1, 1, 1),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+    BM = c(
+        "arc",
+        "arc_disco_iid",
+        "arc_disco_ood",
+        "gsm8k",
+        "hellaswag",
+        "hellaswag_disco_iid",
+        "hellaswag_disco_ood",
+        "mmlu",
+        "mmlu_disco_iid",
+        "mmlu_disco_ood",
+        "winogrande",
+        "winogrande_disco_iid",
+        "winogrande_disco_ood"
+    ),
      METH = c("MAP", "EAPsum"),
      DIM = c(1, 2)
    )
@@ -20,18 +34,27 @@ here::i_am("analysis/evaluate.cv.R")
 seed <- as.numeric(seed)
 set.seed(seed)
 skip.reduced <- F # load v2
+NUM_ANCHORS <- as.numeric(NUM_ANCHORS)
+TO_MERGE_ROW <- as.logical(as.numeric(TO_MERGE_ROW))
+TO_MAKE_PLOTS <- as.logical(as.numeric(TO_MAKE_PLOTS))
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
-# helper functions  
-cv.extract <- function(results, itemtype) {
+
+# helper functions
+cv.extract <- function(results, itemtype, to_merge_row = T) {
    df <- results[[itemtype]]$df
    df$type <- itemtype
-   rowmerge(df, leaderboard)
+   if (to_merge_row) {
+     rowmerge(df, leaderboard)
+   }
+   else {
+     df
+   }
 }
 
-cv.collect <- function(results) {
-  dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype))
+cv.collect <- function(results, to_merge_row = T) {
+  dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype, to_merge_row = to_merge_row))
   names(dfs) <- names(results)
   dfs <- do.call(rbind, dfs)
   dfs$set <- factor(dfs$set, levels = c("train", "test"))
@@ -59,18 +82,18 @@ refit <- function(result, data.train, data.test){
     train <- train |> dplyr::select(-SE_F1)
     test <- test |> dplyr::select(-SE_F1)
   }
-  
+
   # refit theta
   theta.train <- get.theta(model, method = METH, resp = data.train)
   train <- cbind(train, theta.train[, 1, drop = F])
   theta.test <- get.theta(model, method = METH, resp = data.test)
   test <- cbind(test, theta.test[, 1, drop = F])
-  
+
   # refit gam
   mod.score <- fit.gam(train)
   train$p <- predict(mod.score, train)
   test$p <- predict(mod.score, test)
-  
+
   # export
   result$df <- rbind(train, test) |>
     dplyr::mutate(rank.theta = rank(F1),
@@ -80,7 +103,7 @@ refit <- function(result, data.train, data.test){
 
 refit.wrapper <- function(cvs){
   gprint("Refitting theta using {METH}...")
-  datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
+  datapath <- gpath("data/{BM}-sub-{NUM_ANCHORS}-seed={seed}{suffix}.rds")
   all <- readRDS(datapath)
   data.train <- all$data.train
   data.test <- all$data.test
@@ -98,7 +121,7 @@ refit.wrapper <- function(cvs){
 }
 
 evaluate.fit <- function(df.score) {
-   out <-df.score |> 
+   out <-df.score |>
       dplyr::group_by(type, set) |>
       dplyr::summarize(
             rmse = sqrt(mean(error^2)),
@@ -112,7 +135,7 @@ evaluate.fit <- function(df.score) {
 
 plot.theta.score <- function(df.score, itemtype){
    box::use(ggplot2[...], latex2exp[TeX])
-   df.plot <- df.score |> 
+   df.plot <- df.score |>
       dplyr::filter(set == "test", type == itemtype)
    sfs <- evaluate.fit(df.plot)
    text <- glue::glue(
@@ -133,10 +156,10 @@ plot.theta.score <- function(df.score, itemtype){
 
 plot.theta2d <- function(df.score, itemtype){
   box::use(ggplot2[...], latex2exp[TeX])
-  df.plot <- df.score |> 
+  df.plot <- df.score |>
     dplyr::filter(set == "test", type == itemtype)
   ggplot(df.plot, aes(x = F1, y = F2, color = score, size = size)) +
-    geom_point(alpha = 0.5)+ 
+    geom_point(alpha = 0.5)+
     labs(
       title = glue::glue("{BM} 2-dim ability"),
       x = TeX("$\\theta 1$"),
@@ -155,7 +178,7 @@ plot.perc <- function(df.score, itemtype){
                    perc.theta = rank.theta/max(rank.theta),
                    rank.score = rank(score),
                    perc.score = rank.score/max(rank.score)) |>
-     dplyr::filter(set == "test") 
+     dplyr::filter(set == "test")
    ggplot(df.plot, aes(x = 100 * perc.theta, y = 100 * perc.score)) +
       geom_point(alpha = 0.5) +
       geom_abline(intercept = 0,
@@ -217,7 +240,7 @@ leaderboard <- leaderboard |> dplyr::select(size) |> dplyr::filter(size > 0)
 # =============================================================================
 # load cv results
 str.1 <- glue::glue("analysis/models/{BM}")
-str.2 <- glue::glue("{DIM}-cv-seed={seed}{suffix}.rds")
+str.2 <- glue::glue("{DIM}-cv-num_anchors={NUM_ANCHORS}-seed={seed}{suffix}.rds")
 if (DIM == 1){
   cvs <- list(
    "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}")),
@@ -232,7 +255,7 @@ if (DIM == 1){
 if (METH == "EAPsum"){
   cvs <- refit.wrapper(cvs)
 }
-df.score <- cv.collect(cvs)
+df.score <- cv.collect(cvs, to_merge_row = TO_MERGE_ROW)
 
 # evaluate
 sfs <- evaluate.fit(df.score)
@@ -271,15 +294,17 @@ p <- cowplot::plot_grid(
   p.ps, p.ts, p.pc,  p.er, ncol = 1
 )
 
-# scatter plot for 2dim models
-if (DIM == 2){
-  p2d <- plot.theta2d(df.score, "2PL")
-  outpath <- gpath("plots/{BM}-{METH}-2d-theta-seed={seed}{suffix}.png")
-  ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
-}
+if (TO_MAKE_PLOTS){
+    # scatter plot for 2dim models
+    if (DIM == 2){
+        p2d <- plot.theta2d(df.score, "2PL")
+        outpath <- gpath("plots/{BM}-{METH}-2d-theta-seed={seed}{suffix}.png")
+        ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
+    }
 
-# save
-outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.png")
-ggplot2::ggsave(outpath, p, width = 16, height = 16)
-gprint("💾 Saved plot to {outpath}")
+    # save
+    outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.png")
+    ggplot2::ggsave(outpath, p, width = 16, height = 16)
+    gprint("💾 Saved plot to {outpath}")
+}
 
